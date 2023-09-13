@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -20,14 +22,11 @@ class _BlackHoleAnimationScreenState extends State<BlackHoleAnimationScreen>
   late final Animatable<double> holeAnimation;
   late final double r;
 
-  late final AnimationController cardOffsetAnimationController =
-      AnimationController(
-    duration: const Duration(milliseconds: 1000),
-    vsync: this,
-  )..addListener(() => setState(() {}));
+  late final AnimationController cardOffsetAnimationController;
 
   late final Animatable<double> cardOffsetTween;
   late final Animatable<double> cardRotationTween;
+  late final Animatable<double> cardElevationTween;
 
   @override
   void didChangeDependencies() {
@@ -41,6 +40,11 @@ class _BlackHoleAnimationScreenState extends State<BlackHoleAnimationScreen>
     holeAnimation = Tween<double>(begin: r * 1.5, end: 0).chain(CurveTween(
       curve: Curves.ease,
     ));
+
+    cardOffsetAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    )..addListener(() => setState(() {}));
 
     cardOffsetTween = Tween<double>(begin: -90, end: r * 2)
         .chain(CurveTween(curve: Curves.easeInBack));
@@ -60,31 +64,47 @@ class _BlackHoleAnimationScreenState extends State<BlackHoleAnimationScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: SizedBox(
-          height: r * 3,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Transform.translate(
-                offset: Offset(0, cardOffset),
-                child: Transform.rotate(
-                  angle: cardRotationOffset,
-                  child: Container(
-                    height: r * 3 / 4,
-                    width: r * 3 / 4,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: Colors.amber,
-                    ),
-                    child: const Center(child: Text('Hello')),
+        child: ClipPath(
+          clipper: BlackHoleSclipper(),
+          child: SizedBox(
+            height: r * 3,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/hole.png',
+                  width: holdSize,
+                ),
+                Transform.translate(
+                  offset: Offset(0, cardOffset),
+                  child: Transform.rotate(
+                    angle: cardRotationOffset,
+                    child: Padding(
+                        padding: const EdgeInsets.all(30.0),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(5.0),
+                          child: Container(
+                            height: r * 3 / 4,
+                            width: r * 3 / 4,
+                            margin: const EdgeInsets.only(
+                                bottom: 6.0), //Same as `blurRadius` i guess
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(5.0),
+                              color: Colors.red,
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.grey,
+                                  offset: Offset(0.0, 1.0), //(x,y)
+                                  blurRadius: 6.0,
+                                ),
+                              ],
+                            ),
+                          ),
+                        )),
                   ),
                 ),
-              ),
-              Image.asset(
-                'assets/images/hole.png',
-                width: holdSize,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -96,7 +116,7 @@ class _BlackHoleAnimationScreenState extends State<BlackHoleAnimationScreen>
             });
             cardOffsetAnimationController.reverse();
           } else {
-            Future.delayed(const Duration(milliseconds: 450), () {
+            Future.delayed(const Duration(milliseconds: 700), () {
               holeAnimationController.forward();
             });
             cardOffsetAnimationController.forward();
@@ -105,5 +125,31 @@ class _BlackHoleAnimationScreenState extends State<BlackHoleAnimationScreen>
         child: const Text('Button'),
       ),
     );
+  }
+}
+
+class BlackHoleSclipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path()
+      ..moveTo(0, size.height / 2 - 220)
+      ..arcTo(
+          Rect.fromCenter(
+            center: Offset(size.width / 2, size.height / 2 - 200),
+            width: size.width,
+            height: size.height,
+          ),
+          0,
+          pi,
+          true)
+      ..lineTo(0, -1000)
+      ..lineTo(size.width, -1000)
+      ..close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) {
+    return false;
   }
 }
